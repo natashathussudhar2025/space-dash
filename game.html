@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Space Dash</title>
+    <link rel="shortcut icon" href="https://repl.it/public/images/favicon.ico">
+    <link href="style.css" rel="stylesheet" type="text/css" />
+   
+    <div class='top'>
+    <center>
+      <header>
+      Space Dash
+      </header>
+    </center>
+      </div>
+  </head>
+  <center>
+    <canvas id="canvas"></canvas>
+  </center>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+    //Initializing all necessary variables
+      var context = $('#canvas')[0];
+      context.width = 1250;
+      context.height = 465;
+      var gameboard = context.getContext('2d');
+      var ctx = canvas.getContext("2d");
+      var game_loop = setInterval(main_game,1000/fps);
+      var fps = 100;
+      var starting_line_spaceships = 1500;
+      var starting_line_coins = 1700;
+      var life_1 = 'green';
+      var life_2 = 'green';
+      var life_3 = 'green';
+      var lives_lost = 0;
+      var points = 0;
+      var increase = 0;
+      var recent_score;
+      var high_score = " ";
+      var random_enemy;
+      var faster;
+
+      var spaceship_width = 100;
+      var spaceship_height = 30;
+      var spaceship_x_initial = 220;
+      var spaceship_y_initial = 285;
+      var spaceship_x = spaceship_x_initial;
+      var spaceship_y = spaceship_y_initial;
+      var spaceship_y_speed = 0;
+
+      var enemy_spaceship_width = 100;
+      var enemy_spaceship_height = 20;
+
+      var enemy_spaceship_1_x_initial = starting_line_spaceships;
+      var enemy_spaceship_1_y_initial = 50;
+      var enemy_spaceship_1_x = enemy_spaceship_1_x_initial;
+      var enemy_spaceship_1_y = enemy_spaceship_1_y_initial;
+      var enemy_spaceship_1_x_speed = 0;
+      
+      var enemy_spaceship_2_x_initial = starting_line_spaceships;
+      var enemy_spaceship_2_y_initial = 200;
+      var enemy_spaceship_2_x = enemy_spaceship_2_x_initial;
+      var enemy_spaceship_2_y = enemy_spaceship_2_y_initial;
+      var enemy_spaceship_2_x_speed = 0;
+
+      var enemy_spaceship_3_x_initial = starting_line_spaceships;
+      var enemy_spaceship_3_y_initial = 350;
+      var enemy_spaceship_3_x = enemy_spaceship_3_x_initial;
+      var enemy_spaceship_3_y = enemy_spaceship_3_y_initial;
+      var enemy_spaceship_3_x_speed = 0;
+
+      var enemy_spaceship_4_x_initial = starting_line_spaceships;
+      var enemy_spaceship_4_y_initial = 500;
+      var enemy_spaceship_4_x = enemy_spaceship_4_x_initial;
+      var enemy_spaceship_4_y = enemy_spaceship_4_y_initial;
+      var enemy_spaceship_4_x_speed = 0;
+
+      var coin_1_x = starting_line_coins;
+      var coin_1_y = 125;
+      var coin_2_x = starting_line_coins;
+      var coin_2_y = 275;
+      var coin_3_x = starting_line_coins;
+      var coin_3_y = 425;
+      var coin_1_x_speed = 0;
+      var coin_2_x_speed = 0;
+      var coin_3_x_speed = 0;
+      var coin_radius = 10;
+      var bottom_coin_1 = coin_1_y + coin_radius;
+      var top_coin_1 = coin_1_y - coin_radius;
+      var bottom_coin_2 = coin_2_y + coin_radius;
+      var top_coin_2 = coin_2_y - coin_radius;
+      var bottom_coin_3 = coin_3_y + coin_radius;
+      var top_coin_3 = coin_3_y - coin_radius;
+
+      $('body').on('keydown', move_spaceship_up);
+      $('body').on('keydown', move_spaceship_down);
+      $('body').on('keyup', stop_spaceship);
+      $('body').on('keydown', restart_game);
+
+//My abstraction for drawing all items. Function takes in inputs and runs those variables through this function instead of writing 'gamboard.fillStyle' and 'gameboard.fillRect' over and over.
+    function create_item(color,x,y,width,height){
+      gameboard.fillStyle = color;
+      gameboard.fillRect(x,y,width,height);
+    };
+
+//Allows the user to move the spaceship up
+    function move_spaceship_up(event){
+      if(event.which == 38){
+        spaceship_y_speed = -1;
+      }
+    };
+
+//Allows the user to move the spaceship down
+    function move_spaceship_down(event){
+      if(event.which == 40){
+        spaceship_y_speed = 1;
+      }
+    };
+//Allows the user to stop the spaceship
+    function stop_spaceship(){
+      spaceship_y_speed = 0;
+    };
+
+//Limits the x and y values of all the spaceships and coins to keep them within the confines of the canvas visible to the user.
+    function keep_everything_inside(){
+      if(spaceship_y <= -1*spaceship_height){
+        spaceship_y = 570 + spaceship_height;
+      }
+      if(spaceship_y > 570 + spaceship_height){
+        spaceship_y = 0;
+      }
+      if(enemy_spaceship_1_x <= -1*spaceship_width){
+        enemy_spaceship_1_x = enemy_spaceship_1_x_initial;
+        stop_enemy_spaceship(1);
+      }
+      if(enemy_spaceship_2_x <= -1*spaceship_width){
+        enemy_spaceship_2_x = enemy_spaceship_1_x_initial;
+        stop_enemy_spaceship(2);
+      }
+      if(enemy_spaceship_3_x <= -1*spaceship_width){
+        enemy_spaceship_3_x = enemy_spaceship_1_x_initial;
+        stop_enemy_spaceship(3);
+      }
+      if(enemy_spaceship_4_x <= -1*spaceship_width){
+        enemy_spaceship_4_x = enemy_spaceship_1_x_initial;
+        stop_enemy_spaceship(4);
+      }
+      if(coin_1_x <= -2*coin_radius){
+        coin_1_x = starting_line_coins;
+        stop_coin(1);
+      }
+      if(coin_2_x <= -2*coin_radius){
+        coin_2_x = starting_line_coins;
+        stop_coin(2);
+      }
+      if(coin_3_x <= -2*coin_radius){
+        coin_3_x = starting_line_coins;
+        stop_coin(3);
+      }
+    };
+
+//Redraws the objects with their orginal x coordinate minus the value of 'faster', creating the appearance that the object is moving.
+    function move_item(number,item){
+      if(item == 'ship'){
+        if(number == 1){
+        enemy_spaceship_1_x_speed = faster;
+        }
+        if(number == 2){
+        enemy_spaceship_2_x_speed = faster;
+        }
+        if(number == 3){
+        enemy_spaceship_3_x_speed = faster;
+        }
+        if(number == 4){
+        enemy_spaceship_4_x_speed = faster;
+        }
+      }
+      if(item == 'coin'){
+        if(number == 1){
+        coin_1_x_speed = faster;
+        }
+        if(number == 2){
+        coin_2_x_speed = faster;
+        }
+        if(number == 3){
+        coin_3_x_speed = faster;
+        }
+      }
+    };
+
+//Stops the decrease in the x coordinate of the enemy_spaceships
+    function stop_enemy_spaceship(ship_number){
+      if(ship_number == 1){
+      enemy_spaceship_1_x_speed = 0;
+      }
+      if(ship_number == 2){
+      enemy_spaceship_2_x_speed = 0;
+      }
+     if(ship_number == 3){
+      enemy_spaceship_3_x_speed = 0;
+      }
+     if(ship_number == 4){
+      enemy_spaceship_4_x_speed = 0;
+     }
+    };
+
+//Stops the decrease in the x coordinate of the coins
+    function stop_coin(coin_number){
+      if(coin_number == 1){
+      coin_1_x_speed = 0;
+      }
+      if(coin_number == 2){
+      coin_2_x_speed = 0;
+      }
+     if(coin_number == 3){
+      coin_3_x_speed = 0;
+      }
+    };
+
+//This function uses random digits to send a random enemy_spaceship as well as a random coin from the starting_lines beyond the right side of the canvas into the visible part of the canvas
+    function move_random_items(){
+      random_enemy = Math.floor((Math.random() * (1000)) + 1);
+      move_item(random_enemy,'ship');
+      random_coin = Math.floor((Math.random() * (1000)) + 1);
+      move_item(random_coin,'coin');
+    };
+
+//Function identifies if the spaceship has made contact with any of the four enemy_spaceships or the three coins. If spaceship crashes with the enemies, it moves the peices back to their original spot and takes away one of the three lives. If spaceship crashes with the coins, it moves the coin back and gives the user 100 points.
+    function crash(){
+  //Following code identifies a collision between spaceship and enemy_spaceship_1
+      if(spaceship_x + spaceship_width == enemy_spaceship_1_x){
+        if(enemy_spaceship_1_y <= spaceship_y + spaceship_height && enemy_spaceship_1_y >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(enemy_spaceship_1_y + enemy_spaceship_height <= spaceship_y + spaceship_height && enemy_spaceship_1_y + enemy_spaceship_height >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+      if(spaceship_y == enemy_spaceship_1_y + enemy_spaceship_height){
+        if(spaceship_x <= enemy_spaceship_1_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_1_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(spaceship_x + spaceship_width <= enemy_spaceship_1_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_1_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+    if(spaceship_y + spaceship_height == enemy_spaceship_1_y){
+      if(spaceship_x <= enemy_spaceship_1_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_1_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+      if(spaceship_x + spaceship_width <= enemy_spaceship_1_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_1_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+    }
+    //Following code identifies a collision between spaceship and enemy_spaceship_2
+      if(spaceship_x + spaceship_width == enemy_spaceship_2_x){
+        if(enemy_spaceship_2_y <= spaceship_y + spaceship_height && enemy_spaceship_2_y >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(enemy_spaceship_2_y + enemy_spaceship_height <= spaceship_y + spaceship_height && enemy_spaceship_2_y + enemy_spaceship_height >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+      if(spaceship_y == enemy_spaceship_2_y + enemy_spaceship_height){
+        if(spaceship_x <= enemy_spaceship_2_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_2_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(spaceship_x + spaceship_width <= enemy_spaceship_2_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_2_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+    if(spaceship_y + spaceship_height == enemy_spaceship_2_y){
+      if(spaceship_x <= enemy_spaceship_2_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_2_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+      if(spaceship_x + spaceship_width <= enemy_spaceship_2_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_2_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+    }
+    //Following code identifies a collision between spaceship and enemy_spaceship_3
+      if(spaceship_x + spaceship_width == enemy_spaceship_3_x){
+        if(enemy_spaceship_3_y <= spaceship_y + spaceship_height && enemy_spaceship_3_y >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(enemy_spaceship_3_y + enemy_spaceship_height <= spaceship_y + spaceship_height && enemy_spaceship_3_y + enemy_spaceship_height >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+      if(spaceship_y == enemy_spaceship_3_y + enemy_spaceship_height){
+        if(spaceship_x <= enemy_spaceship_3_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_3_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(spaceship_x + spaceship_width <= enemy_spaceship_3_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_3_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+    if(spaceship_y + spaceship_height == enemy_spaceship_3_y){
+      if(spaceship_x <= enemy_spaceship_3_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_3_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+      if(spaceship_x + spaceship_width <= enemy_spaceship_3_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_3_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+    }
+    //Following code identifies a collision between spaceship and enemy_spaceship_4
+      if(spaceship_x + spaceship_width == enemy_spaceship_4_x){
+        if(enemy_spaceship_4_y <= spaceship_y + spaceship_height && enemy_spaceship_4_y >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(enemy_spaceship_4_y + enemy_spaceship_height <= spaceship_y + spaceship_height && enemy_spaceship_4_y + enemy_spaceship_height >= spaceship_y ){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+      if(spaceship_y == enemy_spaceship_4_y + enemy_spaceship_height){
+        if(spaceship_x <= enemy_spaceship_4_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_4_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+        if(spaceship_x + spaceship_width <= enemy_spaceship_4_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_4_x){
+        lives_lost = lives_lost + 1;
+        restart();
+        }
+      }
+    if(spaceship_y + spaceship_height == enemy_spaceship_4_y){
+      if(spaceship_x <= enemy_spaceship_4_x + enemy_spaceship_width && spaceship_x >= enemy_spaceship_4_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+      if(spaceship_x + spaceship_width <= enemy_spaceship_4_x + enemy_spaceship_width && spaceship_x + spaceship_width >= enemy_spaceship_4_x){
+        lives_lost = lives_lost + 1;
+        restart();
+      }
+    }
+    //Following code identifies a collision between spaceship and coin_1
+     if(spaceship_x + spaceship_width == coin_1_x){
+        if(top_coin_1 <= spaceship_y + spaceship_height && top_coin_1 >= spaceship_y ){
+          collect_coin(1);
+        }
+        if(bottom_coin_1 <= spaceship_y + spaceship_height && bottom_coin_1 >= spaceship_y ){
+          collect_coin(1);
+        }
+      }
+      if(spaceship_y == bottom_coin_1){
+        if(coin_1_x >= spaceship_x && coin_1_x <= spaceship_x + spaceship_width){
+          collect_coin(1);
+        }
+      }
+    if(spaceship_y + spaceship_height == top_coin_1){
+      if(coin_1_x >= spaceship_x && coin_1_x <= spaceship_x + spaceship_width){
+        collect_coin(1);
+      }
+      if(spaceship_x + spaceship_width == coin_1_x){
+        collect_coin(1);
+      }
+    } 
+     //Following code identifies a collision between spaceship and coin_2
+     if(spaceship_x + spaceship_width == coin_2_x){
+        if(top_coin_2 <= spaceship_y + spaceship_height && top_coin_2 >= spaceship_y ){
+        collect_coin(2);
+        }
+        if(bottom_coin_2 <= spaceship_y + spaceship_height && bottom_coin_2 >= spaceship_y ){
+        collect_coin(2);
+        }
+      }
+      if(spaceship_y == bottom_coin_2){
+        if(coin_1_x >= spaceship_x && coin_2_x <= spaceship_x + spaceship_width){
+        collect_coin(2);
+        }
+      }
+    if(spaceship_y + spaceship_height == top_coin_2){
+      if(coin_2_x >= spaceship_x && coin_2_x <= spaceship_x + spaceship_width){
+        collect_coin(2);
+      }
+      if(spaceship_x + spaceship_width == coin_2_x){
+        collect_coin(2);
+      }
+    } 
+    //Following code identifies a collision between spaceship and coin_3
+     if(spaceship_x + spaceship_width == coin_3_x){
+        if(top_coin_3 <= spaceship_y + spaceship_height && top_coin_3 >= spaceship_y ){
+        collect_coin(3);
+        }
+        if(bottom_coin_3 <= spaceship_y + spaceship_height && bottom_coin_3 >= spaceship_y ){
+        collect_coin(3);
+        }
+      }
+      if(spaceship_y == bottom_coin_3){
+        if(coin_1_x >= spaceship_x && coin_3_x <= spaceship_x + spaceship_width){
+        collect_coin(3);
+        }
+      }
+    if(spaceship_y + spaceship_height == top_coin_3){
+      if(coin_3_x >= spaceship_x && coin_3_x <= spaceship_x + spaceship_width){
+        collect_coin(3);
+      }
+      if(spaceship_x + spaceship_width == coin_3_x){
+        collect_coin(3);
+      }
+    } 
+  };
+
+//If the user collects a coin, the coin gets sent back to the starting_line, the x coordinate speed gets set to zero, and gives the user 100 points.
+    function collect_coin(coin_number){
+      if(coin_number == 1){
+        coin_1_x_speed = 0;
+        coin_1_x = starting_line_coins;
+      }
+      if(coin_number == 2){
+        coin_2_x_speed = 0;
+        coin_2_x = starting_line_coins;
+      }
+      if(coin_number == 3){
+        coin_3_x_speed = 0;
+        coin_3_x = starting_line_coins;
+      }
+      points = points + 100;
+    };
+
+//Based on how many of the three lives the user has left, the red/green colors of each of the circles in the top left are determined and the x coordinate speeds of the enemy_spaceships and coins are determined. The game peieces move faster as the user loses more lives. If the user loses all three lives, the game peices stop and reset.
+    function lose_a_life(){
+      if(lives_lost == 0){
+        faster = -2;
+      }
+     if(lives_lost == 1){
+       life_1 = "red";
+       faster = -3;
+     }
+     if(lives_lost == 2){
+       life_2 = "red";
+       faster = -4;
+     }
+     if(lives_lost == 3){
+       life_3 = "red";
+       end_game();
+     }
+    };
+
+//Puts all the game peices back in their original places and stop them from moving.
+    function restart(){
+      spaceship_x = spaceship_x_initial;
+      spaceship_y = spaceship_y_initial;
+      enemy_spaceship_1_x = enemy_spaceship_1_x_initial;
+      enemy_spaceship_2_x = enemy_spaceship_2_x_initial;
+      enemy_spaceship_3_x = enemy_spaceship_3_x_initial;
+      enemy_spaceship_4_x = enemy_spaceship_4_x_initial;
+      coin_1_x = starting_line_coins;
+      coin_2_x = starting_line_coins;
+      coin_3_x = starting_line_coins;
+      stop_enemy_spaceship(1);
+      stop_enemy_spaceship(2);
+      stop_enemy_spaceship(3);
+      stop_enemy_spaceship(4);
+      stop_coin(1);
+      stop_coin(2);
+      stop_coin(3);
+    };
+
+//Allows the user to try again once they lose the game.
+    function restart_game(event){
+      if(event.which == 13){
+      restart();
+      points = 0;
+      life_1 = 'green';
+      life_2 = 'green';
+      life_3 = 'green';
+      lives_lost = 0;
+      }
+    };
+
+//When the user loses all three lives, the high score is displayed, the game peices reset, and 'game over!' text is displayed in the center.
+    function end_game(){ 
+    display_high_score();
+    restart();
+    gameboard.fillStyle = 'Red';
+    gameboard.font = "80px Bungee";
+    gameboard.fillText("GAME OVER!", 450, 250);
+    gameboard.font = "40px Bungee";
+    gameboard.fillText("press  'enter'  to restart", 400, 300);
+   };
+
+//This function determines whether the current score or the stored high score is greater and makes that the new high score.
+   function display_high_score(){
+     recent_score = points;
+      if(recent_score >= high_score){
+        high_score = recent_score; 
+      }
+   };
+
+//This is the main loop that is continuosly running, as set in the variable section. This calls all the necessary functions and draws all of the game peices/features. The game board is cleared before every loop so that the previous drawings of the game peices are removed.
+    function main_game() {
+      gameboard.clearRect(0,0,1400,570); 
+      keep_everything_inside();
+      crash();
+      lose_a_life();
+      move_random_items();
+
+      //draw spaceship
+      create_item('#cfd8dc',spaceship_x,spaceship_y,spaceship_width,spaceship_height);
+
+      //draw crown of spaceship
+      gameboard.fillStyle = "#b0bec5";
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x + spaceship_width - 15,spaceship_y - 10);
+      ctx.lineTo(spaceship_x + spaceship_width - 15,spaceship_y + spaceship_height + 10);
+      ctx.lineTo(spaceship_x + spaceship_width + 20,spaceship_y + (spaceship_height / 2));      
+      ctx.fill();
+
+      //draw base of spaceship
+      gameboard.fillStyle = "#b0bec5";
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y - 15);
+      ctx.lineTo(spaceship_x + 5,spaceship_y);
+      ctx.lineTo(spaceship_x + 5,spaceship_y + spaceship_height)
+      ctx.lineTo(spaceship_x - 20,spaceship_y + spaceship_height + 15);
+      ctx.fill();
+
+      //draw fire shooting from the spaceship
+      gameboard.fillStyle = "red";
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y - 15);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 15);
+      ctx.lineTo(spaceship_x - 90,spaceship_y);      
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y + 15);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 45);
+      ctx.lineTo(spaceship_x - 90,spaceship_y + spaceship_height);      
+      ctx.fill();
+
+      gameboard.fillStyle = "#ff6d00";
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y - 15);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 5);
+      ctx.lineTo(spaceship_x - 70,spaceship_y - 5);      
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y + 5);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 25);
+      ctx.lineTo(spaceship_x - 70,spaceship_y + 15);      
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y + 25);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 45);
+      ctx.lineTo(spaceship_x - 70,spaceship_y + 35);      
+      ctx.fill();
+
+      gameboard.fillStyle = "#FFFF66";
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y - 15);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 5);
+      ctx.lineTo(spaceship_x - 50,spaceship_y - 5);      
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y + 5);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 25);
+      ctx.lineTo(spaceship_x - 50,spaceship_y + 15);      
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(spaceship_x - 20,spaceship_y + 25);
+      ctx.lineTo(spaceship_x - 20,spaceship_y + 45);
+      ctx.lineTo(spaceship_x - 50,spaceship_y + 35);      
+      ctx.fill();
+
+      //draw windows of spaceship
+      gameboard.fillStyle = "#607d8b";
+      gameboard.beginPath();
+      gameboard.arc(spaceship_x + 45,spaceship_y + (spaceship_height / 2),8,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(spaceship_x + 63,spaceship_y + (spaceship_height / 2),8,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.fillStyle = "#b2ebf2";
+      gameboard.beginPath();
+      gameboard.arc(spaceship_x + 45,spaceship_y + (spaceship_height / 2),5,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(spaceship_x + 63,spaceship_y + (spaceship_height / 2),5,0,2 * Math.PI);
+      gameboard.fill();
+
+      //dots on spaceship 
+      gameboard.fillStyle = "white";
+      gameboard.beginPath();
+      gameboard.arc(spaceship_x + 12,spaceship_y + (spaceship_height / 2),2,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(spaceship_x + 21,spaceship_y + (spaceship_height / 2),2,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(spaceship_x + 30,spaceship_y + (spaceship_height / 2),2,0,2 * Math.PI);
+      gameboard.fill();
+
+      //draw enemies
+      create_item('red',enemy_spaceship_1_x,enemy_spaceship_1_y,enemy_spaceship_width, enemy_spaceship_height);
+
+      create_item('red', enemy_spaceship_2_x, enemy_spaceship_2_y, enemy_spaceship_width, enemy_spaceship_height);
+
+      create_item('red',enemy_spaceship_3_x,enemy_spaceship_3_y,enemy_spaceship_width, enemy_spaceship_height);
+
+      create_item('red',enemy_spaceship_4_x,enemy_spaceship_4_y,enemy_spaceship_width, enemy_spaceship_height);
+
+      //draw crown of enemy_spaceships
+      gameboard.fillStyle = "white";
+      ctx.beginPath();
+      ctx.moveTo(enemy_spaceship_1_x + 10,enemy_spaceship_1_y - 12);
+      ctx.lineTo(enemy_spaceship_1_x - 15,enemy_spaceship_1_y + (enemy_spaceship_height / 2));
+      ctx.lineTo(enemy_spaceship_1_x + 10,enemy_spaceship_1_y + enemy_spaceship_height + 12);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(enemy_spaceship_2_x + 10,enemy_spaceship_2_y - 12);
+      ctx.lineTo(enemy_spaceship_2_x - 15,enemy_spaceship_2_y + (enemy_spaceship_height / 2));
+      ctx.lineTo(enemy_spaceship_2_x + 10,enemy_spaceship_2_y + enemy_spaceship_height + 12);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(enemy_spaceship_3_x + 10,enemy_spaceship_3_y - 12);
+      ctx.lineTo(enemy_spaceship_3_x - 15,enemy_spaceship_3_y + (enemy_spaceship_height / 2));
+      ctx.lineTo(enemy_spaceship_3_x + 10,enemy_spaceship_3_y + enemy_spaceship_height + 12);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(enemy_spaceship_4_x + 10,enemy_spaceship_4_y - 12);
+      ctx.lineTo(enemy_spaceship_4_x - 15,enemy_spaceship_4_y + (enemy_spaceship_height / 2));
+      ctx.lineTo(enemy_spaceship_4_x + 10,enemy_spaceship_4_y + enemy_spaceship_height + 12);
+      ctx.fill();
+
+      //draw base of enemy_spaceships
+      gameboard.fillStyle = "white";
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_1_x + enemy_spaceship_width,enemy_spaceship_1_y,12,Math.PI,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_2_x + enemy_spaceship_width,enemy_spaceship_2_y,12,Math.PI,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_3_x + enemy_spaceship_width,enemy_spaceship_3_y,12,Math.PI,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_4_x + enemy_spaceship_width,enemy_spaceship_4_y,12,Math.PI,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_1_x + enemy_spaceship_width,enemy_spaceship_1_y + enemy_spaceship_height,12,0,1 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_2_x + enemy_spaceship_width,enemy_spaceship_2_y + enemy_spaceship_height,12,0,1 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_3_x + enemy_spaceship_width,enemy_spaceship_3_y + enemy_spaceship_height,12,0,1 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_4_x + enemy_spaceship_width,enemy_spaceship_4_y + enemy_spaceship_height,12,0,1 * Math.PI);
+      gameboard.fill();
+
+      create_item('white',enemy_spaceship_1_x + (enemy_spaceship_width / 2) + 20,enemy_spaceship_1_y,(enemy_spaceship_width / 2)-20,20);
+
+      create_item('white',enemy_spaceship_2_x + (enemy_spaceship_width / 2) + 20,enemy_spaceship_2_y,(enemy_spaceship_width / 2)-20,20);
+
+      create_item('white',enemy_spaceship_3_x + (enemy_spaceship_width / 2) + 20,enemy_spaceship_3_y,(enemy_spaceship_width / 2)-20,20);
+
+      create_item('white',enemy_spaceship_4_x + (enemy_spaceship_width / 2) + 20,enemy_spaceship_4_y,(enemy_spaceship_width / 2)-20,20);
+
+      //draw windows on enemy_spaceships
+      gameboard.fillStyle = "#607d8b";
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_1_x + 30,enemy_spaceship_1_y + (enemy_spaceship_height / 2),8,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_2_x + 30,enemy_spaceship_2_y + (enemy_spaceship_height / 2),8,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_3_x + 30,enemy_spaceship_3_y + (enemy_spaceship_height / 2),8,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_4_x + 30,enemy_spaceship_4_y + (enemy_spaceship_height / 2),8,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.fillStyle = "#b2ebf2";
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_1_x + 30,enemy_spaceship_1_y + (enemy_spaceship_height / 2),5,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_2_x + 30,enemy_spaceship_2_y + (enemy_spaceship_height / 2),5,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_3_x + 30,enemy_spaceship_3_y + (enemy_spaceship_height / 2),5,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(enemy_spaceship_4_x + 30,enemy_spaceship_4_y + (enemy_spaceship_height / 2),5,0,2 * Math.PI);
+      gameboard.fill();
+
+    //draw coins
+      gameboard.fillStyle = "#ffca28";
+      gameboard.beginPath();
+      gameboard.arc(coin_1_x,coin_1_y,20,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(coin_2_x,coin_2_y,20,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(coin_3_x,coin_3_y,20,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.fillStyle = "#ff6f00";
+      gameboard.beginPath();
+      gameboard.arc(coin_1_x,coin_1_y,15,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(coin_2_x,coin_2_y,15,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.beginPath();
+      gameboard.arc(coin_3_x,coin_3_y,15,0,2 * Math.PI);
+      gameboard.fill();
+
+      gameboard.fillStyle = '#d32f2f';
+      gameboard.font = "20px Bungee";
+      gameboard.fillText("$",coin_1_x - 6,coin_1_y + 7);
+
+      gameboard.fillStyle = '#d32f2f';
+      gameboard.font = "20px Bungee";
+      gameboard.fillText("$",coin_2_x - 6,coin_2_y + 7);
+
+      gameboard.fillStyle = '#d32f2f';
+      gameboard.font = "20px Bungee";
+      gameboard.fillText("$",coin_3_x - 6,coin_3_y + 7);
+
+
+    //titles at the top of the board
+      gameboard.fillStyle = 'white';
+      gameboard.font = "25px Bungee";
+      gameboard.fillText("Points: " + points, 350, 40);
+
+      gameboard.fillStyle = 'white';
+      gameboard.font = "25px Bungee";
+      gameboard.fillText("Lives:", 10, 40)
+
+      gameboard.fillStyle = 'white';
+      gameboard.font = "25px Bungee";
+      gameboard.fillText("High Score: " + high_score, 650, 40)      
+
+      gameboard.fillStyle = life_1;
+      gameboard.beginPath();
+      gameboard.arc(125,30,15,0,2*Math.PI);
+      gameboard.fill();
+
+      gameboard.fillStyle = life_2;
+      gameboard.beginPath();
+      gameboard.arc(165,30,15,0,2*Math.PI);
+      gameboard.fill();
+
+      gameboard.fillStyle = life_3;
+      gameboard.beginPath();
+      gameboard.arc(205,30,15,0,2*Math.PI);
+      gameboard.fill();
+
+      spaceship_y = spaceship_y + spaceship_y_speed;
+      enemy_spaceship_1_x = enemy_spaceship_1_x + enemy_spaceship_1_x_speed;
+      enemy_spaceship_2_x = enemy_spaceship_2_x + enemy_spaceship_2_x_speed;
+      enemy_spaceship_3_x = enemy_spaceship_3_x + enemy_spaceship_3_x_speed;
+      enemy_spaceship_4_x = enemy_spaceship_4_x + enemy_spaceship_4_x_speed;
+      coin_1_x = coin_1_x + coin_1_x_speed;
+      coin_2_x = coin_2_x + coin_2_x_speed;
+      coin_3_x = coin_3_x + coin_3_x_speed;
+    };
+      </script>
+    </body>
+  </html>
